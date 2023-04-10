@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -Wpedantic
+CXXFLAGS = -Wall -Wextra -Wpedantic -pg
 
 MAKEFLAGS += -s
 

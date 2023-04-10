@@ -100,6 +100,7 @@ void updateState(int x, int y, int width, int height, queue<Point> &q, unordered
             q.push(Point{x, y});
         else if (arr[y][x] == '*') {
             neighbour_cities.push_back(Point{x, y});
+            // neighbour_cities.emplace_back(x, y);
         }
     }
 }
