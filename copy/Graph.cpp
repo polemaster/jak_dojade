@@ -3,55 +3,40 @@
 
 
 template<typename T>
-// Graph<T>::Graph(std::size_t size) : _size(size), adj_list(size) {}
-Graph<T>::Graph() {}
+Graph<T>::Graph(std::size_t size) : _size(size), adj_list(size) {}
 
 template<typename T>
 void Graph<T>::addEdge(T x, T y, int weight) {
-    adj_list[x].push_back({y, weight});
+    adj_list[x].push_back(make_pair(y, weight));
     // adj_list[y].push_back(make_pair(x, weight));
 }
 
 template<typename T>
 void Graph<T>::print() const {
-    // for (int i = 0; i < _size; ++i) {
-    for (auto p: adj_list) {
-        cout << "Vertex " << p.first << ": ";
-        for (auto el: p.second) {
+    for (int i = 0; i < _size; ++i) {
+    // for (auto p: adj_list) {
+        cout << "Vertex " << i << ": ";
+        for (auto el: adj_list[i]) {
             cout << "(" << el.first << ", " << el.second << "), ";
         }
         cout << endl;
     }
 }
 
-// template<typename T>
-// int Graph<T>::size() const {
-//     return _size;
-// }
+template<typename T>
+int Graph<T>::size() const {
+    return _size;
+}
 
 template<typename T>
-list<pair<T, int>>& Graph<T>::operator[](string index) {
-    // return adj_list.at(index);
+list<pair<T, int>>& Graph<T>::operator[](int index) {
     return adj_list[index];
 }
 
-// template<typename T>
-// const list<pair<T, int>>& Graph<T>::getList(string index) const {
-//     return adj_list.at(index);
-// }
-
-
-
 template<typename T>
-const list<pair<T, int>>& Graph<T>::operator[](string index) const {
-    return adj_list.at(index);
+const list<pair<T, int>>& Graph<T>::operator[](int index) const {
+    return adj_list[index];
 }
-
-template<typename T>
-unordered_map<T, list<pair<T, int>>> Graph<T>::getAdjList() const {
-    return adj_list;
-}
-
 
 // template<typename T>
 // void Graph<T>::bfs(T src) {
@@ -81,5 +66,4 @@ unordered_map<T, list<pair<T, int>>> Graph<T>::getAdjList() const {
 //     cout << endl;
 // }
 
-// template class Graph<int>;
-template class Graph<string>;
+template class Graph<int>;

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <list>
 #include <vector>
+#include <string>
 
 using namespace std;
 
@@ -11,15 +12,15 @@ using namespace std;
 template<typename T>
 class Graph {
 public:
-    Graph(std::size_t size);
+    Graph();
     void addEdge(T x, T y, int weight);
     void print() const;
-    int size() const;
-    list<pair<T, int>>& operator[](int index);
-    const list<pair<T, int>>& operator[](int index) const;
+    // int size() const;
+    list<pair<T, int>>& operator[](string index);
+    const list<pair<T, int>>& operator[](string index) const;
+    // const list<pair<T, int>>& getList(string index) const;
+    unordered_map<T, list<pair<T, int>>> getAdjList() const;
 private:
-    // unordered_map<T, list<pair<T, int>>> adj_list;
-    std::size_t _size;
-    // vector<list<pair<T, int>>> adj_list(_size);
-    vector<list<pair<T, int>>> adj_list;
+    // std::size_t _size;
+    unordered_map<T, list<pair<T, int>>> adj_list;
 };

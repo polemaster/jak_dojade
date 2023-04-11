@@ -26,7 +26,7 @@ private:
         return os;
     }
 
-    static const int ARR_SIZE = 1000;
+    static const int ARR_SIZE = 100;
     DLList<Element> arr[ARR_SIZE];
     int occupied_lists;
 
