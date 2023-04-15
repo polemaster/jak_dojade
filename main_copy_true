@@ -3,9 +3,8 @@
 #include <limits>
 #include <stack>
 #include <map>
-#include <unordered_set>
+// #include <unordered_set>
 
-using namespace std;
 
 // #define INF 2147483647
 #define INF std::numeric_limits<int>::max()
@@ -13,8 +12,6 @@ using namespace std;
 struct Point {
     int x;
     int y;
-    Point(int a, int b) : x(a), y(b) {};
-    Point() : x(0), y(0) {};
 };
 
 bool isValid(int x, int y, int width, int height) {
@@ -37,13 +34,10 @@ void dijkstra(const string& src, const string& dest, bool type, const Graph<stri
     unordered_map<string, pair<int,string>> visited;
     // for (int i = 0; i < g.size(); ++i) visited[key] = {0, key};
     // for (auto el: g.getAdjList())
-    // vector<string> &vec = g.getVertices();
     for (auto v: g.getVertices())
-    // for (int i = 0; i < vec.size(); ++i)
         // visited[el.first] = {INF, el.first};
         // visited[el.first] = {INF, ""};
         visited[v].first = INF;
-        // visited[vec[i]].first = INF;
 
     // cout << "length: " << visited.size() << endl;
 
@@ -110,15 +104,25 @@ int hashPoint(const Point& p) {
     return ((p.x + p.y) * (p.x + p.y + 1) / 2) + p.y;
 }
 
-
-struct DPoint {
-    int x, y, dist;
-};
+// void updateState(int x, int y, int width, int height, queue<Point> &q, map<pair<int, int>, Point> &visited, vector<Point> &neighbour_cities, char **arr, Point &old_point) {
+void updateState(int x, int y, int width, int height, queue<Point> &q, unordered_map<int, Point> &path, vector<Point> &neighbour_cities, char **arr, Point &old_point) {
+    // if (isValid(x, y, width, height) && path.count({x, y}) == 0 && (arr[y][x] == '#' || arr[y][x] == '*')) {
+    if (isValid(x, y, width, height) && path.count(hashPoint(x, y)) == 0 && (arr[y][x] == '#' || arr[y][x] == '*')) {
+        // path[{x, y}] = old_point;
+        path[hashPoint(x, y)] = old_point;
+        if (arr[y][x] == '#')
+            q.push(Point{x, y});
+        else if (arr[y][x] == '*') {
+            neighbour_cities.push_back(Point{x, y});
+            // neighbour_cities.emplace_back(x, y);
+        }
+    }
+}
 
 struct PointHasher {
     std::size_t operator()(const Point& p) const {
         // return std::hash<int>()(p.x) ^ std::hash<int>()(p.y);
-        return std::hash<int>()(hashPoint(p));
+        return std::hash<int>()(hashPoint(p)) ^ std::hash<int>()(p.y);
     }
 };
 
@@ -128,60 +132,47 @@ struct PointEqual {
     }
 };
 
-bool isVisited(vector<Point>& v, int x, int y) {
-    for (int i = 0; i < v.size(); ++i)
-        if (v[i].x == x && v[i].y == y)
-            return true;
-    return false;
-}
-
-// void updateState(int x, int y, int width, int height, queue<DPoint> &q, vector<DPoint> &neighbour_cities, char **arr, DPoint &old_point, vector<Point>& visited) {
-void updateState(int x, int y, int width, int height, queue<DPoint> &q, vector<DPoint> &neighbour_cities, char **arr, DPoint &old_point, unordered_set<Point, PointHasher, PointEqual>& visited) {
-    // if (isValid(x, y, width, height) && !isVisited(visited, x, y) && (arr[y][x] == '#' || arr[y][x] == '*')) {
-    if (isValid(x, y, width, height) && visited.find(Point{x, y}) == visited.end() && (arr[y][x] == '#' || arr[y][x] == '*')) {
-        // visited.push_back(Point{x, y});
-        visited.emplace(x, y);
-        // path[hashPoint(x, y)] = old_point;
-        DPoint current_point = {x, y, old_point.dist + 1};
-        if (arr[y][x] == '#')
-            q.push(current_point);
-        else if (arr[y][x] == '*') {
-            neighbour_cities.push_back(current_point);
-        }
-    }
-}
 
 // void bfs(int x, int y, char **arr, Graph<string> &graph, int height, int width, map<pair<int, int>,string> &city_map) {
 void bfs(int x, int y, char **arr, Graph<string> &graph, int height, int width, unordered_map<int,string> &city_map) {
     if (arr[y][x] != '*')
         return;
 
-    DPoint curr_point;
-    queue<DPoint> q;
-    unordered_set<Point, PointHasher, PointEqual> visited;
-    // vector<Point> visited;
-    vector<DPoint> neighbour_cities;
+    Point curr_point;
+    queue<Point> q;
+    unordered_map<int,Point> path;
+    // map<pair<int, int>, Point> path;
+    // unordered_set<Point, PointHasher, PointEqual> visited;
+    vector<Point> neighbour_cities;
 
-    q.push(DPoint{x, y, 0});
-    // visited.push_back(Point{x, y});
-    visited.emplace(x, y);
+    q.push(Point{x, y});
+    // path[{x, y}] = Point{-1, -1};
+    path[hashPoint(x, y)] = Point{-1, -1};
     while (!q.empty()) {
         curr_point = q.front();
         q.pop();
-        updateState(curr_point.x - 1, curr_point.y, width, height, q, neighbour_cities, arr, curr_point, visited);
-        updateState(curr_point.x + 1, curr_point.y, width, height, q, neighbour_cities, arr, curr_point, visited);
-        updateState(curr_point.x, curr_point.y - 1, width, height, q, neighbour_cities, arr, curr_point, visited);
-        updateState(curr_point.x, curr_point.y + 1, width, height, q, neighbour_cities, arr, curr_point, visited);
+        updateState(curr_point.x - 1, curr_point.y, width, height, q, path, neighbour_cities, arr, curr_point);
+        updateState(curr_point.x + 1, curr_point.y, width, height, q, path, neighbour_cities, arr, curr_point);
+        updateState(curr_point.x, curr_point.y - 1, width, height, q, path, neighbour_cities, arr, curr_point);
+        updateState(curr_point.x, curr_point.y + 1, width, height, q, path, neighbour_cities, arr, curr_point);
     }
-    // std::cout << "city " << city_map[hashPoint(x, y)] << endl;
+    // cout << "city " << city_map[{x, y}] << endl;
     // cout << "city (" << x << ", " << y << ")(" << hashPoint(x, y) << ") neighbours: " << endl;
     for (std::size_t i = 0; i < neighbour_cities.size(); ++i) {
+        int sum = 0;
         int neigh_x = neighbour_cities[i].x;
         int neigh_y = neighbour_cities[i].y;
-        int distance = neighbour_cities[i].dist;
         // cout << "city " << i << " (" << neighbour_cities[i].x << ", " << neighbour_cities[i].y << ") to (" << x << ", " << y << "): ";
+        // Point new_point = visited[{neigh_x, neigh_y}];
+        Point new_point = path[hashPoint(neigh_x, neigh_y)];
+        while (new_point.x != -1 && new_point.y != -1) {
+            // new_point = visited[{new_point.x, new_point.y}];
+            new_point = path[hashPoint(new_point.x, new_point.y)];
+            ++sum;
+        }
         // cout << sum << endl;
-        graph.addEdge(city_map[hashPoint(x, y)], city_map[hashPoint(neigh_x, neigh_y)], distance);
+        // graph.addEdge(city_map[{x, y}], city_map[{neigh_x, neigh_y}], sum);
+        graph.addEdge(city_map[hashPoint(x, y)], city_map[hashPoint(neigh_x, neigh_y)], sum);
     }
     // cout << endl;
 }
@@ -197,6 +188,7 @@ void getGraph(char **arr, Graph<string> &graph, int height, int width, unordered
     }
 }
 
+using namespace std;
 
 int main() {
 
@@ -313,8 +305,6 @@ int main() {
         graph.addEdge(src, dest, weight);
     }
 
-    // graph.print();
-
     // execute queries
     bool type;
     cin >> n;
@@ -325,7 +315,6 @@ int main() {
         else
             dijkstra(src, dest, type, graph);
     }
-
 
 
     // graph.print();

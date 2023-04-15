@@ -13,6 +13,11 @@ void Graph<T>::addEdge(T x, T y, int weight) {
 }
 
 template<typename T>
+void Graph<T>::addVertex(const T& x) {
+    vertices.push_back(x);
+}
+
+template<typename T>
 void Graph<T>::print() const {
     // for (int i = 0; i < _size; ++i) {
     for (auto p: adj_list) {
@@ -50,6 +55,11 @@ const list<pair<T, int>>& Graph<T>::operator[](string index) const {
 template<typename T>
 unordered_map<T, list<pair<T, int>>> Graph<T>::getAdjList() const {
     return adj_list;
+}
+
+template<typename T>
+const vector<T>& Graph<T>::getVertices() const {
+    return vertices;
 }
 
 
