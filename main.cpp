@@ -1,106 +1,29 @@
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
 #include "Graph.h"
-#include <queue>
-#include <limits>
-#include <stack>
-#include <map>
-#include <unordered_set>
+#include "Queue.h"
+#include "Stack.h"
+#include "Dictionary.h"
+#include "Pair.h"
+#include "PriorityQueue.h"
 
-using namespace std;
 
-// #define INF 2147483647
-#define INF std::numeric_limits<int>::max()
+// infinity value is needed for Dijkstra's algorithm
+#define INF 2147483647
 
+// normal 2d point
 struct Point {
     int x;
     int y;
-    Point(int a, int b) : x(a), y(b) {};
-    Point() : x(0), y(0) {};
 };
 
-bool isValid(int x, int y, int width, int height) {
-    if (x >= width || x < 0)
-        return false;
-    if (y >= height || y < 0)
-        return false;
-    return true;
-}
-
-void checkPoint(int x, int y, int width, int height, Point *city_point, char **arr) {
-    if (isValid(x, y, width, height) && arr[y][x] == '*') {
-        city_point->x = x;
-        city_point->y = y;
-    }
-}
-
-void dijkstra(const string& src, const string& dest, bool type, const Graph<string> &g) {
-    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> pq;
-    unordered_map<string, pair<int,string>> visited;
-    // for (int i = 0; i < g.size(); ++i) visited[key] = {0, key};
-    // for (auto el: g.getAdjList())
-    // vector<string> &vec = g.getVertices();
-    for (auto v: g.getVertices())
-    // for (int i = 0; i < vec.size(); ++i)
-        // visited[el.first] = {INF, el.first};
-        // visited[el.first] = {INF, ""};
-        visited[v].first = INF;
-        // visited[vec[i]].first = INF;
-
-    // cout << "length: " << visited.size() << endl;
-
-    // for (auto el: visited)
-    //     cout << el.first << ": " << el.second.first << ", " << el.second.second << endl;
-
-    visited[src] = {0, src};
-    pq.push({0, src});
-
-    while (!pq.empty()) {
-        string vertex = pq.top().second;
-        int weight = pq.top().first;
-        pq.pop();
-        // cout << "popping: " << vertex << " " << weight << endl;
-
-
-        if (vertex == dest) {
-            stack<string> reversed;
-            string tmp_node = visited[vertex].second;
-            int final_dist = visited[vertex].first;
-
-            cout << final_dist;
-
-            if (type) {
-                while (visited[tmp_node].first > 0) {
-                    reversed.push(tmp_node); // could be optimized?
-                    tmp_node = visited[tmp_node].second;
-                }
-            }
-            while (!reversed.empty()) {
-                cout << " " << reversed.top();
-                reversed.pop();
-            }
-            cout << endl;
-            return;
-        }
-
-        for (const auto& el: g[vertex]) {
-        // for (auto& el: g.getList(vertex)) {
-            string adj_node = el.first;
-            int adj_weight = el.second;
-            // cout << "weight + adj_weight: " << weight + adj_weight << endl;
-            // cout << "visited[" << adj_node << "].first: " <<  visited[adj_node].first << endl;
-
-            if (weight + adj_weight < visited[adj_node].first) {
-                // cout << "updating: " << adj_node << " from " << visited[adj_node].first << " to " << weight + adj_weight << endl;
-                visited[adj_node] = {weight + adj_weight, vertex};
-                pq.push({weight + adj_weight, adj_node});
-
-            }
-
-        }
-    }
-
-    cout << "error" << endl;
-    return;
-}
+// 2d point with distance (used for bfs: see below)
+struct DPoint {
+    int x;
+    int y;
+    int dist;
+};
 
 int hashPoint(int x, int y) {
     return ((x + y) * (x + y + 1) / 2) + y;
@@ -110,38 +33,83 @@ int hashPoint(const Point& p) {
     return ((p.x + p.y) * (p.x + p.y + 1) / 2) + p.y;
 }
 
+// see the definition below
+bool isValid(int x, int y, int width, int height);
 
-struct DPoint {
-    int x, y, dist;
-};
-
-struct PointHasher {
-    std::size_t operator()(const Point& p) const {
-        // return std::hash<int>()(p.x) ^ std::hash<int>()(p.y);
-        return std::hash<int>()(hashPoint(p));
+// helper function for reading city names in the main() function
+void checkPoint(int x, int y, int width, int height, Point *city_point, char **arr) {
+    if (isValid(x, y, width, height) && arr[y][x] == '*') {
+        city_point->x = x;
+        city_point->y = y;
     }
-};
-
-struct PointEqual {
-    bool operator()(const Point& p1, const Point& p2) const {
-        return p1.x == p2.x && p1.y == p2.y;
-    }
-};
-
-bool isVisited(vector<Point>& v, int x, int y) {
-    for (int i = 0; i < v.size(); ++i)
-        if (v[i].x == x && v[i].y == y)
-            return true;
-    return false;
 }
 
-// void updateState(int x, int y, int width, int height, queue<DPoint> &q, vector<DPoint> &neighbour_cities, char **arr, DPoint &old_point, vector<Point>& visited) {
-void updateState(int x, int y, int width, int height, queue<DPoint> &q, vector<DPoint> &neighbour_cities, char **arr, DPoint &old_point, unordered_set<Point, PointHasher, PointEqual>& visited) {
-    // if (isValid(x, y, width, height) && !isVisited(visited, x, y) && (arr[y][x] == '#' || arr[y][x] == '*')) {
-    if (isValid(x, y, width, height) && visited.find(Point{x, y}) == visited.end() && (arr[y][x] == '#' || arr[y][x] == '*')) {
-        // visited.push_back(Point{x, y});
-        visited.emplace(x, y);
-        // path[hashPoint(x, y)] = old_point;
+// Dijkstra's algorithm for finding the shortest path in our graph (using priority queue)
+// After it finds the path, put the path on stack to reverse it so that it is from source to
+// destination rather than from dest to source
+void dijkstra(int src, int dest, bool type, const Graph<int> &g, Vector<String>& city_names) {
+    PriorityQueue<Pair<int, int>> pq;
+    Dictionary<int, Pair<int, int>> visited;
+    for (int i = 0; i < g.size(); ++i)
+        visited.insert(i, {INF, src});
+
+    visited.update(src, {0, src});
+    pq.push({0, src});
+
+    while (!pq.empty()) {
+        int vertex = pq.top().second;
+        int weight = pq.top().first;
+        pq.pop();
+
+        if (vertex == dest) {
+            Stack<int> reversed;
+            int tmp_node = visited.at(vertex).second;
+            int final_dist = visited.at(vertex).first;
+
+            std::cout << final_dist;
+
+            if (type) {
+                while (visited.at(tmp_node).first > 0) {
+                    reversed.push(tmp_node);
+                    tmp_node = visited.at(tmp_node).second;
+                }
+            }
+            while (!reversed.empty()) {
+                std::cout << " " << city_names[reversed.top()];
+                reversed.pop();
+            }
+            std::cout << std::endl;
+            return;
+        }
+
+        for (auto it = g[vertex].begin(); it != g[vertex].end(); ++it) {
+            int adj_node = (*it).first;
+            int adj_weight = (*it).second;
+
+            if (weight + adj_weight < visited.at(adj_node).first) {
+                visited.update(adj_node, {weight + adj_weight, vertex});
+                pq.push({weight + adj_weight, adj_node});
+            }
+
+        }
+    }
+
+    std::cout << "error" << std::endl;
+    return;
+}
+
+// checks whether a point has valid coordinates
+bool isValid(int x, int y, int width, int height) {
+    if (x >= width || x < 0)
+        return false;
+    if (y >= height || y < 0)
+        return false;
+    return true;
+}
+
+void addPoint(int x, int y, int width, int height, Queue<DPoint> &q, bool** visited, Vector<DPoint> &neighbour_cities, char **arr, DPoint &old_point) {
+    if (isValid(x, y, width, height) && (arr[y][x] == '#' || arr[y][x] == '*') && !visited[y][x]) {
+        visited[y][x] = true;
         DPoint current_point = {x, y, old_point.dist + 1};
         if (arr[y][x] == '#')
             q.push(current_point);
@@ -151,78 +119,108 @@ void updateState(int x, int y, int width, int height, queue<DPoint> &q, vector<D
     }
 }
 
-// void bfs(int x, int y, char **arr, Graph<string> &graph, int height, int width, map<pair<int, int>,string> &city_map) {
-void bfs(int x, int y, char **arr, Graph<string> &graph, int height, int width, unordered_map<int,string> &city_map) {
+// Convert all adjacent cities connected by roads to vertices with edges in graph
+// This BFS basically checks all adjacent unvisited roads or cities and adds them on the queue
+// Also, the struct DPoint remembers the distance of the point from the origin city (number of roads)
+void bfs(int x, int y, char **arr, Graph<int> &graph, int height, int width, Dictionary<int,int>& city_map) {
     if (arr[y][x] != '*')
         return;
 
-    DPoint curr_point;
-    queue<DPoint> q;
-    unordered_set<Point, PointHasher, PointEqual> visited;
-    // vector<Point> visited;
-    vector<DPoint> neighbour_cities;
 
+    DPoint curr_point;
+    Queue<DPoint> q;
+    Vector<DPoint> neighbour_cities;
+    bool** visited = new bool*[height];
+    for (int i = 0; i < height; ++i)
+        visited[i] = new bool[width];
+
+    for (int i = 0; i < height; ++i)
+        for (int j = 0; j < width; ++j)
+            visited[i][j] = false;
+
+    // start bfs
     q.push(DPoint{x, y, 0});
-    // visited.push_back(Point{x, y});
-    visited.emplace(x, y);
+    visited[y][x] = true;
+
     while (!q.empty()) {
         curr_point = q.front();
         q.pop();
-        updateState(curr_point.x - 1, curr_point.y, width, height, q, neighbour_cities, arr, curr_point, visited);
-        updateState(curr_point.x + 1, curr_point.y, width, height, q, neighbour_cities, arr, curr_point, visited);
-        updateState(curr_point.x, curr_point.y - 1, width, height, q, neighbour_cities, arr, curr_point, visited);
-        updateState(curr_point.x, curr_point.y + 1, width, height, q, neighbour_cities, arr, curr_point, visited);
+        addPoint(curr_point.x - 1, curr_point.y, width, height, q, visited, neighbour_cities, arr, curr_point);
+        addPoint(curr_point.x + 1, curr_point.y, width, height, q, visited, neighbour_cities, arr, curr_point);
+        addPoint(curr_point.x, curr_point.y - 1, width, height, q, visited, neighbour_cities, arr, curr_point);
+        addPoint(curr_point.x, curr_point.y + 1, width, height, q, visited, neighbour_cities, arr, curr_point);
     }
-    // std::cout << "city " << city_map[hashPoint(x, y)] << endl;
-    // cout << "city (" << x << ", " << y << ")(" << hashPoint(x, y) << ") neighbours: " << endl;
-    for (std::size_t i = 0; i < neighbour_cities.size(); ++i) {
+    // end of bfs
+
+    // add edges to the graph
+    for (int i = 0; i < neighbour_cities.size(); ++i) {
         int neigh_x = neighbour_cities[i].x;
         int neigh_y = neighbour_cities[i].y;
         int distance = neighbour_cities[i].dist;
-        // cout << "city " << i << " (" << neighbour_cities[i].x << ", " << neighbour_cities[i].y << ") to (" << x << ", " << y << "): ";
-        // cout << sum << endl;
-        graph.addEdge(city_map[hashPoint(x, y)], city_map[hashPoint(neigh_x, neigh_y)], distance);
+        graph.addEdge(city_map.at(hashPoint(x, y)), city_map.at(hashPoint(neigh_x, neigh_y)), distance);
     }
-    // cout << endl;
+
+    for (int i = 0; i < height; ++i)
+        delete[] visited[i];
+    delete[] visited;
 }
 
-// void getGraph(char **arr, Graph<string> &graph, int height, int width, map<pair<int, int>,string>& city_map) {
-void getGraph(char **arr, Graph<string> &graph, int height, int width, unordered_map<int,string>& city_map) {
+// iterate through the whole map and do bfs on each city (*) if it has at least one road adjacent (#)
+void getGraph(char **arr, Graph<int>& graph, int height, int width, Dictionary<int,int>& city_map) {
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
             if (arr[i][j] == '*') {
+                int y = i;
+                int x = j;
+                if (isValid(x - 1, y, width, height) && isValid(x + 1, y, width, height) && isValid(x, y - 1, width, height) && isValid(x, y + 1, width, height))
+                    if (arr[y][x - 1] != '#' && arr[y][x + 1] != '#' && arr[y - 1][x] != '#' && arr[y + 1][x] != '#')
+                        continue;
                 bfs(j, i, arr, graph, height, width, city_map);
             }
         }
     }
 }
 
+void getString(String& str) {
+    char ch;
+
+    // read the first letter
+    do {
+        ch = getchar();
+    } while (ch == '\n' || ch == '\r' || ch == ' ');
+    str = ch;
+
+    // read the remaining letters until it sees whitespace
+    ch = getchar();
+    while (ch != ' ' && ch != '\n' && ch != '\r') {
+        str += ch;
+        ch = getchar();
+    }
+}
 
 int main() {
+    // seed is necessary for Dictionary (for hash functions)
+    srand(time( NULL ));
 
-    // unordered_map<string, Point> cities;
-    // ID's of cities: 0, 1, 2...
-    // unordered_map<string, int> cities; // city name to ID
-    // unordered_map<int, int> hash_to_city_ID; // hash to ID
-    // vector<string> cities_names; // contains city names (by ID)
-
-    // map<pair<int, int>, string> point_to_name; // hash to ID
-    unordered_map<int, string> point_to_name; // hash to ID
-
-    int width, height;
+    Vector<String> city_names; // ID to city name
+    Dictionary<int, int> point_to_id; // city point (hash) to city ID
+    Dictionary<String, int> name_to_id; // city name to city ID
+    int width, height; // width and height of the map
+    // for reading map:
     int ch;
-    string buffer;
+    String buffer;
     Point city_point, tmp_point;
     bool city_read_mode = false;
-    cin >> width >> height;
 
+    std::cin >> width >> height;
+
+    // create the map
     char **arr = new char*[height];
     for (int i = 0; i < height; ++i) {
         arr[i] = new char[width];
     }
 
-
-    // reading map
+    // read all the characters of the map
     while (true) {
         ch = getchar();
         if (ch != '\n' && ch != '\r')
@@ -243,17 +241,9 @@ int main() {
             arr[i][j] = ch;
         }
     }
-    // for (int i = 0; i < height; ++i) {
-    //     for (int j = 0; j < width; ++j) {
-    //         cout << arr[i][j];
-    //     }
-    //     cout << endl;
-    // }
 
 
-    Graph<string> graph;
-
-    // adding cities
+    // add information about cities to the data structures from the map
     int counter = 0;
     for (int i = 0; i < height; ++i) {
         for (int j = 0; j < width; ++j) {
@@ -282,16 +272,10 @@ int main() {
                 checkPoint(tmp_point.x, tmp_point.y + 1, width, height, &city_point, arr);
             }
             else if (city_read_mode) {
-                // cities[buffer] = counter;
-                // hash_to_city_ID[hashPoint(city_point)] = counter;
-                // cities_names.push_back(buffer);
-                // point_to_name[{city_point.x, city_point.y}] = buffer;
-                point_to_name[hashPoint(city_point.x, city_point.y)] = buffer;
+                point_to_id.insert(hashPoint(city_point.x, city_point.y), counter);
+                name_to_id.insert(buffer, counter);
+                city_names.push_back(buffer);
                 ++counter;
-                // cout << "city " << buffer << " at: (" << city_point.x << ", " << city_point.y << ")" << endl;
-                graph[buffer];
-                graph.addVertex(buffer);
-                // graph.getAdjList()[buffer];
 
                 buffer.clear();
                 city_read_mode = false;
@@ -299,42 +283,35 @@ int main() {
         }
     }
 
-    // cout << "counter: " << counter << endl;
+    // create graph with number of vertices equal to counter
+    Graph<int> graph(counter);
 
-    getGraph(arr, graph, height, width, point_to_name);
-
+    // on each city do bfs algorithm to add all adjacent cities to a graph with edges as roads
+    getGraph(arr, graph, height, width, point_to_id);
 
     // add airlines
-    int n, weight;
-    string src, dest;
-    cin >> n;
+    int n;
+    String src, dest, weight_str;
+    std::cin >> n;
     for (int i = 0; i < n; ++i) {
-        cin >> src >> dest >> weight;
-        graph.addEdge(src, dest, weight);
+        getString(src);
+        getString(dest);
+        getString(weight_str);
+        graph.addEdge(name_to_id.at(src), name_to_id.at(dest), atoi(weight_str.c_str()));
     }
-
-    // graph.print();
 
     // execute queries
-    bool type;
-    cin >> n;
+    String type_str;
+    std::cin >> n;
     for (int i = 0; i < n; ++i) {
-        cin >> src >> dest >> type;
+        getString(src);
+        getString(dest);
+        getString(type_str);
         if (src == dest)
-            cout << 0 << endl;
+            std::cout << 0 << std::endl;
         else
-            dijkstra(src, dest, type, graph);
+            dijkstra(name_to_id.at(src), name_to_id.at(dest), atoi(type_str.c_str()), graph, city_names);
     }
-
-
-
-    // graph.print();
-    // cout << "graph size: " << graph.size() << endl;
-    // graph.getAdjList().at("AC1");
-
-    // cout << "Cities:" << endl;
-    // for (int i = 0; i < counter; ++i)
-    //     cout << "ID: " << i << ", name: " << cities_names[i] << endl;
 
     for (int i = 0; i < height; ++i)
         delete[] arr[i];
